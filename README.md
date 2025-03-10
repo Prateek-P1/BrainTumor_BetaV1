@@ -1,4 +1,4 @@
-# Brain Tumor Detection, Segmentation with a 3-D viewport
+# Brain Tumor Detection, Segmentation with an integrated 3-D viewport
 
 This project aims to detect and segment Brain Tumors from 3-Dimensional Brain MRI Scans in the NIFTI (.nii) file format. <br>
 The BraTS2020 dataset was used.
