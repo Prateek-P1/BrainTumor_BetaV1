@@ -15,10 +15,8 @@ matplotlib.use('Agg')
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads/'
 app.config['OUTPUT_FOLDER'] = 'static/outputs/'
-app.config['SLICE_FOLDER'] = 'static/slices/'  # New folder for slice images
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['OUTPUT_FOLDER'], exist_ok=True)
-os.makedirs(app.config['SLICE_FOLDER'], exist_ok=True)  # Create slice folder
 
 # ✅ Model Loading (Only Used for front.html)
 MODEL_PATH = "model_x1_1.h5"
@@ -41,9 +39,6 @@ except Exception as e:
     model = None
 
 IMG_SIZE = 128
-
-# Store the current NIfTI file path
-current_nifti_file = None
 
 def preprocess_image(file_path):
     """Preprocesses a NIfTI (.nii) file for model input."""
@@ -115,7 +110,57 @@ def process_nii(file_path):
         print(f"Error in process_nii: {e}")
         return None
 
-# ✅ Route for `front.html` (Runs Model for Tumor Detection)
+# ✅ New function to generate and save axial, coronal, and sagittal views
+def generate_orthogonal_slices(file_path):
+    """Generates axial, coronal, and sagittal slices from a NIfTI file."""
+    try:
+        print(f"Generating orthogonal slices for: {file_path}")
+        nii_img = nib.load(file_path)
+        img_data = nii_img.get_fdata()
+        
+        # Get dimensions
+        x_dim, y_dim, z_dim = img_data.shape
+        
+        # Create directories for different slice types
+        axial_dir = os.path.join(app.config['OUTPUT_FOLDER'], 'axial')
+        coronal_dir = os.path.join(app.config['OUTPUT_FOLDER'], 'coronal')
+        sagittal_dir = os.path.join(app.config['OUTPUT_FOLDER'], 'sagittal')
+        
+        os.makedirs(axial_dir, exist_ok=True)
+        os.makedirs(coronal_dir, exist_ok=True)
+        os.makedirs(sagittal_dir, exist_ok=True)
+        
+        # Normalize the data for better visualization
+        img_data = img_data / np.max(img_data) if np.max(img_data) > 0 else img_data
+        
+        # Generate axial slices (top to bottom view)
+        for i in range(z_dim):
+            axial_slice = img_data[:, :, i]
+            slice_path = os.path.join(axial_dir, f"slice_{i}.png")
+            plt.imsave(slice_path, axial_slice.T, cmap='gray')
+        
+        # Generate coronal slices (front to back view)
+        for i in range(y_dim):
+            coronal_slice = img_data[:, i, :]
+            slice_path = os.path.join(coronal_dir, f"slice_{i}.png")
+            plt.imsave(slice_path, coronal_slice.T, cmap='gray')
+        
+        # Generate sagittal slices (side view)
+        for i in range(x_dim):
+            sagittal_slice = img_data[i, :, :]
+            slice_path = os.path.join(sagittal_dir, f"slice_{i}.png")
+            plt.imsave(slice_path, sagittal_slice.T, cmap='gray')
+        
+        return {
+            'axial': {'count': z_dim, 'min': 0, 'max': z_dim-1},
+            'coronal': {'count': y_dim, 'min': 0, 'max': y_dim-1},
+            'sagittal': {'count': x_dim, 'min': 0, 'max': x_dim-1}
+        }
+    except Exception as e:
+        print(f"Error generating orthogonal slices: {e}")
+        return None
+
+# ✅ Route for front.html (Runs Model for Tumor Detection)
 @app.route('/detect_tumor', methods=['POST'])
 def detect_tumor():
     if 'file' not in request.files:
@@ -139,11 +184,9 @@ def detect_tumor():
     else:
         return jsonify({'error': 'Failed to process file'}), 500
 
-# ✅ Route for `advanced.html` (No Model, Just Upload)
+# ✅ Route for advanced.html (No Model, Just Upload)
 @app.route('/upload_nii', methods=['POST'])
 def upload_nii():
-    global current_nifti_file
-    
     if 'file' not in request.files:
         return jsonify({'error': 'No file uploaded'}), 400
 
@@ -154,66 +197,38 @@ def upload_nii():
     filename = secure_filename(file.filename)
     file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     file.save(file_path)
-    
-    # Save the path for slice viewing
-    current_nifti_file = file_path
 
     print(f"File received for 3D viewing: {file_path}")
+    
+    # Generate orthogonal slices for advanced viewer
+    slice_info = generate_orthogonal_slices(file_path)
+    
+    if slice_info:
+        return jsonify({
+            'message': 'File uploaded successfully', 
+            'file_path': f"/uploads/{filename}",
+            'slice_info': slice_info
+        })
+    else:
+        return jsonify({'error': 'Failed to process file'}), 500
 
-    return jsonify({'message': 'File uploaded successfully', 'file_path': f"/uploads/{filename}"})
-
-# ✅ New route to fetch slices for the advanced viewer
+# ✅ New endpoint to get specific slices
 @app.route('/get_slice/<axis>/<int:index>', methods=['GET'])
 def get_slice(axis, index):
-    global current_nifti_file
-    
-    if not current_nifti_file or not os.path.exists(current_nifti_file):
-        return jsonify({'error': 'No NIfTI file loaded'}), 400
-    
     try:
-        # Load NIfTI data
-        nii_img = nib.load(current_nifti_file)
-        data = nii_img.get_fdata()
+        if axis not in ['axial', 'coronal', 'sagittal']:
+            return jsonify({'error': 'Invalid slice type'}), 400
+            
+        slice_path = f"/static/outputs/{axis}/slice_{index}.png"
+        full_path = os.path.join(os.getcwd(), app.config['OUTPUT_FOLDER'], axis, f"slice_{index}.png")
         
-        # Determine slice based on axis
-        if axis == 'axial':
-            if index >= data.shape[2]:
-                return jsonify({'error': f'Index {index} out of range'}), 400
-            slice_data = data[:, :, index]
-        elif axis == 'coronal':
-            if index >= data.shape[1]:
-                return jsonify({'error': f'Index {index} out of range'}), 400
-            slice_data = data[:, index, :]
-        elif axis == 'sagittal':
-            if index >= data.shape[0]:
-                return jsonify({'error': f'Index {index} out of range'}), 400
-            slice_data = data[index, :, :]
-        else:
-            return jsonify({'error': 'Invalid axis'}), 400
-        
-        # Normalize for visualization
-        min_val = np.min(slice_data)
-        max_val = np.max(slice_data)
-        if max_val > min_val:
-            slice_data = (slice_data - min_val) / (max_val - min_val)
-        
-        # Generate filename
-        file_name = f"{axis}_{index}.png"
-        file_path = os.path.join(app.config['SLICE_FOLDER'], file_name)
-        
-        # Save the slice as an image
-        plt.figure(figsize=(4, 4))
-        plt.imshow(slice_data, cmap='gray')
-        plt.axis('off')
-        plt.tight_layout()
-        plt.savefig(file_path, bbox_inches='tight', pad_inches=0)
-        plt.close()
-        
-        return jsonify({'slice_path': f"/static/slices/{file_name}"})
-    
+        if not os.path.exists(full_path):
+            return jsonify({'error': 'Slice not found'}), 404
+            
+        return jsonify({'slice_path': slice_path})
     except Exception as e:
-        print(f"Error generating slice: {e}")
-        return jsonify({'error': f'Failed to generate slice: {str(e)}'}), 500
+        print(f"Error fetching slice: {e}")
+        return jsonify({'error': 'Failed to fetch slice'}), 500
 
 # ✅ Routes for serving pages
 @app.route('/')
@@ -224,19 +239,16 @@ def home():
 def advanced():
     return render_template('advanced.html')
 
-# ✅ Routes for serving static files
+# ✅ Route for serving uploaded files
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
-@app.route('/static/outputs/<filename>')
+@app.route('/static/outputs/<path:filename>')
 def output_file(filename):
-    return send_from_directory(app.config['OUTPUT_FOLDER'], filename)
-
-# ✅ New route for serving slice images
-@app.route('/static/slices/<filename>')
-def slice_file(filename):
-    return send_from_directory(app.config['SLICE_FOLDER'], filename)
+    # Handle nested directories
+    directory = os.path.join(app.config['OUTPUT_FOLDER'], os.path.dirname(filename))
+    return send_from_directory(directory, os.path.basename(filename))
 
 if __name__ == '__main__':
     app.run(debug=True)

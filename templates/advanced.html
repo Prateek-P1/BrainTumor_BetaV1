@@ -106,15 +106,22 @@
             position: relative;
             width: 100%;
             margin-bottom: 10px;
+            /* Increased height to accommodate rotated images */
+            min-height: 200px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
         }
         .slice-box img {
-            width: 100%;
-            height: auto;
+            max-width: 100%;
+            max-height: 200px;
             border-radius: 5px;
             background-color: #000;
             display: block;
-            margin: 0;
+            margin: 0 auto;
             transition: transform 0.3s ease;
+            transform-origin: center center;
         }
         .slider-container {
             display: flex;
@@ -179,10 +186,11 @@
         .btn-primary:hover {
             background-color: #0069d9;
         }
+        /* Moved rotation controls below image container */
         .rotate-controls {
             display: flex;
             justify-content: center;
-            margin-top: 8px;
+            margin: 8px 0;
             gap: 5px;
         }
         .rotate-btn {
@@ -198,8 +206,23 @@
             border-radius: 4px;
             cursor: pointer;
             transition: all 0.2s ease;
+            z-index: 5;
         }
         .rotate-btn:hover {
+            background-color: #3a3a3a;
+            border-color: #007bff;
+        }
+        .home-btn {
+            margin-left: 20px;
+            background-color: #2d2d2d;
+            color: #eaeaea;
+            border: 1px solid #444;
+            border-radius: 4px;
+            padding: 8px 15px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .home-btn:hover {
             background-color: #3a3a3a;
             border-color: #007bff;
         }
@@ -238,6 +261,7 @@
                     <button type="submit">Upload & Process</button>
                 </form>
             </div>
+            <a href="/" class="home-btn">Back to Tumor Detection</a>
         </div>
 
         <!-- Main Content Area -->
@@ -252,13 +276,14 @@
                     <div class="slice-image-container">
                         <img id="axial-img" src="" alt="Axial Slice">
                     </div>
+                    <!-- Moved rotation controls below the image container -->
                     <div class="rotate-controls">
                         <button class="rotate-btn rotate-left" data-target="axial-img">↺</button>
                         <button class="rotate-btn rotate-right" data-target="axial-img">↻</button>
                     </div>
                     <div class="slider-container">
-                        <input type="range" class="slider" id="axial-slider" min="5" max="145" value="5">
-                        <span id="axial-value" class="slider-value">5</span>
+                        <input type="range" class="slider" id="axial-slider" min="0" max="100" value="0">
+                        <span id="axial-value" class="slider-value">0</span>
                     </div>
                     <div class="control-buttons">
                         <button class="btn btn-primary animate-btn" data-target="axial-slider">Animate</button>
@@ -271,13 +296,14 @@
                     <div class="slice-image-container">
                         <img id="coronal-img" src="" alt="Coronal Slice">
                     </div>
+                    <!-- Moved rotation controls below the image container -->
                     <div class="rotate-controls">
                         <button class="rotate-btn rotate-left" data-target="coronal-img">↺</button>
                         <button class="rotate-btn rotate-right" data-target="coronal-img">↻</button>
                     </div>
                     <div class="slider-container">
-                        <input type="range" class="slider" id="coronal-slider" min="5" max="145" value="5">
-                        <span id="coronal-value" class="slider-value">5</span>
+                        <input type="range" class="slider" id="coronal-slider" min="0" max="100" value="0">
+                        <span id="coronal-value" class="slider-value">0</span>
                     </div>
                     <div class="control-buttons">
                         <button class="btn btn-primary animate-btn" data-target="coronal-slider">Animate</button>
@@ -290,13 +316,14 @@
                     <div class="slice-image-container">
                         <img id="sagittal-img" src="" alt="Sagittal Slice">
                     </div>
+                    <!-- Moved rotation controls below the image container -->
                     <div class="rotate-controls">
                         <button class="rotate-btn rotate-left" data-target="sagittal-img">↺</button>
                         <button class="rotate-btn rotate-right" data-target="sagittal-img">↻</button>
                     </div>
                     <div class="slider-container">
-                        <input type="range" class="slider" id="sagittal-slider" min="5" max="145" value="5">
-                        <span id="sagittal-value" class="slider-value">5</span>
+                        <input type="range" class="slider" id="sagittal-slider" min="0" max="100" value="0">
+                        <span id="sagittal-value" class="slider-value">0</span>
                     </div>
                     <div class="control-buttons">
                         <button class="btn btn-primary animate-btn" data-target="sagittal-slider">Animate</button>
@@ -413,29 +440,72 @@
                     contentType: false,
                     success: function(response) {
                         $(".status-bar").text("NII file loaded successfully");
-                        load3DModel(response.file_path);
+                        
+                        // Update slider ranges based on slice_info
+                        if (response.slice_info) {
+                            const info = response.slice_info;
+                            
+                            // Update axial slider
+                            if (info.axial) {
+                                $("#axial-slider").attr({
+                                    "min": info.axial.min,
+                                    "max": info.axial.max,
+                                    "value": Math.floor((info.axial.min + info.axial.max) / 2)
+                                }).trigger("input");
+                            }
+                            
+                            // Update coronal slider
+                            if (info.coronal) {
+                                $("#coronal-slider").attr({
+                                    "min": info.coronal.min,
+                                    "max": info.coronal.max,
+                                    "value": Math.floor((info.coronal.min + info.coronal.max) / 2)
+                                }).trigger("input");
+                            }
+                            
+                            // Update sagittal slider
+                            if (info.sagittal) {
+                                $("#sagittal-slider").attr({
+                                    "min": info.sagittal.min,
+                                    "max": info.sagittal.max,
+                                    "value": Math.floor((info.sagittal.min + info.sagittal.max) / 2)
+                                }).trigger("input");
+                            }
+                        }
+                        
+                        // Load 3D model if path is available
+                        if (response.file_path) {
+                            try {
+                                load3DModel(response.file_path);
+                            } catch (e) {
+                                console.error("Error loading 3D model:", e);
+                                $(".status-bar").text("Error loading 3D model. 2D slices are available.");
+                            }
+                        }
                     },
                     error: function(error) {
-                        $(".status-bar").text("Error: " + (error.responseJSON?.message || "Failed to process file"));
+                        $(".status-bar").text("Error: " + (error.responseJSON?.error || "Failed to process file"));
                     }
                 });
             });
 
             function load3DModel(niiFilePath) {
-                let r = new X.renderer3D();
-                r.container = 'three-d-container';
-                r.init();
-                
-                let volume = new X.volume();
-                volume.file = niiFilePath;
-                
-                r.add(volume);
-                r.render();
-                
-                // Update initial slices
-                updateSlice("axial", $("#axial-slider").val());
-                updateSlice("coronal", $("#coronal-slider").val());
-                updateSlice("sagittal", $("#sagittal-slider").val());
+                try {
+                    let r = new X.renderer3D();
+                    r.container = 'three-d-container';
+                    r.init();
+                    
+                    let volume = new X.volume();
+                    volume.file = niiFilePath;
+                    
+                    r.add(volume);
+                    r.render();
+                    
+                    $(".status-bar").text("3D model loaded successfully. Use sliders to navigate 2D slices.");
+                } catch (e) {
+                    console.error("Error in XTK rendering:", e);
+                    $(".status-bar").text("Error loading 3D model. 2D slices are available.");
+                }
             }
 
             function updateSlice(axis, index) {
@@ -447,8 +517,13 @@
                             $(`#${axis}-img`).attr("src", response.slice_path);
                         }
                     },
-                    error: function() {
-                        $(".status-bar").text(`Error fetching ${axis} slice at index ${index}`);
+                    error: function(error) {
+                        if (error.status === 404) {
+                            // Just silently handle 404 errors for slices that don't exist
+                            console.log(`No ${axis} slice at index ${index}`);
+                        } else {
+                            $(".status-bar").text(`Error fetching ${axis} slice at index ${index}`);
+                        }
                     }
                 });
             }
