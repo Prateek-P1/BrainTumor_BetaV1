@@ -1,4 +1,4 @@
-/static
+/static/*
 /uploads/*.nii
 *.keras
 brain_viewer.py
