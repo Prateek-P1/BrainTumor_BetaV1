@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from flask import Flask, render_template, request, jsonify, send_from_directory
 from werkzeug.utils import secure_filename
 
-# ✅ Prevent Tkinter errors from Matplotlib
+#  Prevent Tkinter errors from Matplotlib
 matplotlib.use('Agg')
 
 app = Flask(__name__)
@@ -18,7 +18,7 @@ app.config['OUTPUT_FOLDER'] = 'static/outputs/'
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['OUTPUT_FOLDER'], exist_ok=True)
 
-# ✅ Model Loading (Only Used for front.html)
+#  Model Loading (Only Used for front.html)
 MODEL_PATH = "model_x1_1.h5"
 print(f"Loading model from: {MODEL_PATH}")
 
@@ -110,7 +110,7 @@ def process_nii(file_path):
         print(f"Error in process_nii: {e}")
         return None
 
-# ✅ New function to generate and save axial, coronal, and sagittal views
+#  New function to generate and save axial, coronal, and sagittal views
 def generate_orthogonal_slices(file_path):
     """Generates axial, coronal, and sagittal slices from a NIfTI file."""
     try:
@@ -160,7 +160,7 @@ def generate_orthogonal_slices(file_path):
         print(f"Error generating orthogonal slices: {e}")
         return None
 
-# ✅ Route for front.html (Runs Model for Tumor Detection)
+#  Route for front.html (Runs Model for Tumor Detection)
 @app.route('/detect_tumor', methods=['POST'])
 def detect_tumor():
     if 'file' not in request.files:
@@ -184,7 +184,7 @@ def detect_tumor():
     else:
         return jsonify({'error': 'Failed to process file'}), 500
 
-# ✅ Route for advanced.html (No Model, Just Upload)
+#  Route for advanced.html (No Model, Just Upload)
 @app.route('/upload_nii', methods=['POST'])
 def upload_nii():
     if 'file' not in request.files:
@@ -212,7 +212,7 @@ def upload_nii():
     else:
         return jsonify({'error': 'Failed to process file'}), 500
 
-# ✅ New endpoint to get specific slices
+#  New endpoint to get specific slices
 @app.route('/get_slice/<axis>/<int:index>', methods=['GET'])
 def get_slice(axis, index):
     try:
@@ -230,7 +230,7 @@ def get_slice(axis, index):
         print(f"Error fetching slice: {e}")
         return jsonify({'error': 'Failed to fetch slice'}), 500
 
-# ✅ Routes for serving pages
+#  Routes for serving pages
 @app.route('/')
 def home():
     return render_template('front.html')
@@ -239,7 +239,7 @@ def home():
 def advanced():
     return render_template('advanced.html')
 
-# ✅ Route for serving uploaded files
+#  Route for serving uploaded files
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
