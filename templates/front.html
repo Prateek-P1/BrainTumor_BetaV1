@@ -42,20 +42,36 @@
             display: none;
             margin-top: 20px;
         }
+        
+        
+
 
         .slider-container {
             margin-top: 10px;
         }
 
-        img {
-            max-width: 80%;
-            margin-top: 10px;
+        .image-row {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .image-row img {
+            max-width: 80%; /* Increased size */
             border: 2px solid white;
         }
 
         /* Keep Advanced button always visible */
         .advanced-btn-container {
             margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .advanced-btn {
+            margin-left: 20px; /* Align with Overlayed Predicted Mask */
         }
     </style>
 
@@ -77,21 +93,29 @@
 
         <div id="image-container">
             <h3>Select Slice</h3>
-            <input type="range" id="slice-slider" min="0" max="0" value="0">
-            <p>Slice: <span id="slice-number">0</span></p>
+            <div class="slider-container">
+                <input type="range" id="slice-slider" min="0" max="0" value="0">
+                <p>Slice: <span id="slice-number">0</span></p>
+            </div>
 
-            <h4>FLAIR MRI Slice</h4>
-            <img id="flair-image" src="" alt="FLAIR MRI Slice">
-            
-            <h4>Overlayed Predicted Mask</h4>
-            <img id="overlay-image" src="" alt="Overlayed Mask">
-
-            <h4>Predicted Mask Only</h4>
-            <img id="mask-image" src="" alt="Predicted Mask">
+            <div class="image-row">
+                <div>
+                    <h4>FLAIR MRI Slice</h4>
+                    <img id="flair-image" src="" alt="FLAIR MRI Slice">
+                </div>
+                <div>
+                    <h4>Overlayed Predicted Mask</h4>
+                    <img id="overlay-image" src="" alt="Overlayed Mask">
+                </div>
+                <div>
+                    <h4>Predicted Mask Only</h4>
+                    <img id="mask-image" src="" alt="Predicted Mask">
+                </div>
+            </div>
         </div>
 
         <div class="advanced-btn-container">
-            <a href="/advanced" class="btn btn-secondary mt-3">Go to Advanced 3D Viewer</a>
+            <a href="/advanced" class="btn btn-secondary mt-3 advanced-btn">Go to Advanced 3D Viewer</a>
         </div>
     </div>
 
