@@ -1,0 +1,8 @@
+/static
+/uploads/*.nii
+*.keras
+brain_viewer.py
+detection.ipynb
+detection.py
+dimens.py
+firstui.py

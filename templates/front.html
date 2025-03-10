@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FLAIR MRI Tumor Detection</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        body {
+            background-color: #121212;
+            color: white;
+            font-family: 'Arial', sans-serif;
+            text-align: center;
+        }
+
+        .container {
+            margin-top: 20px;
+        }
+
+        .card {
+            padding: 20px;
+            border-radius: 10px;
+            background: #1e1e1e;
+            box-shadow: 0px 4px 10px rgba(255, 255, 255, 0.1);
+        }
+
+        h1 {
+            color: #007bff;
+            margin-bottom: 20px;
+        }
+
+        #result {
+            font-size: 1.5rem;
+            margin-top: 10px;
+            font-weight: bold;
+            color: yellow;
+        }
+
+        #image-container {
+            display: none;
+            margin-top: 20px;
+        }
+
+        .slider-container {
+            margin-top: 10px;
+        }
+
+        img {
+            max-width: 80%;
+            margin-top: 10px;
+            border: 2px solid white;
+        }
+
+        /* Keep Advanced button always visible */
+        .advanced-btn-container {
+            margin-top: 20px;
+        }
+    </style>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+
+    <div class="container">
+        <h1>FLAIR MRI Tumor Detection</h1>
+
+        <div class="card">
+            <h3>Upload a FLAIR MRI Scan (.nii)</h3>
+            <form id="upload-form" enctype="multipart/form-data">
+                <input type="file" class="form-control" id="file-input" name="file" accept=".nii">
+                <button type="submit" class="btn btn-primary mt-3">Upload & Analyze</button>
+            </form>
+            <p id="result"></p>
+        </div>
+
+        <div id="image-container">
+            <h3>Select Slice</h3>
+            <input type="range" id="slice-slider" min="0" max="0" value="0">
+            <p>Slice: <span id="slice-number">0</span></p>
+
+            <h4>FLAIR MRI Slice</h4>
+            <img id="flair-image" src="" alt="FLAIR MRI Slice">
+            
+            <h4>Overlayed Predicted Mask</h4>
+            <img id="overlay-image" src="" alt="Overlayed Mask">
+
+            <h4>Predicted Mask Only</h4>
+            <img id="mask-image" src="" alt="Predicted Mask">
+        </div>
+
+        <div class="advanced-btn-container">
+            <a href="/advanced" class="btn btn-secondary mt-3">Go to Advanced 3D Viewer</a>
+        </div>
+    </div>
+
+    <script>
+        let slices = [];
+
+        $("#upload-form").submit(function(event) {
+            event.preventDefault();
+            let formData = new FormData();
+            formData.append("file", $("#file-input")[0].files[0]);
+
+            $("#result").text("Processing... Please wait.").css("color", "orange");
+
+            $.ajax({
+                url: "/detect_tumor",
+                type: "POST",
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    if (response.error) {
+                        $("#result").text("Error: " + response.error).css("color", "red");
+                        return;
+                    }
+
+                    slices = response.slices;
+                    if (slices.length > 0) {
+                        $("#slice-slider").attr("max", slices.length - 1).val(0);
+                        updateSlice(0);
+                        $("#image-container").show();
+                        $("#result").text("Tumor detection complete! Use the slider to explore slices.").css("color", "green");
+                    } else {
+                        $("#result").text("No slices found. Please try another file.").css("color", "red");
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error("Error:", error);
+                    $("#result").text("Error in processing. Please try again.").css("color", "red");
+                }
+            });
+        });
+
+        $("#slice-slider").on("input", function() {
+            updateSlice($(this).val());
+        });
+
+        function updateSlice(index) {
+            $("#slice-number").text(index);
+            $("#flair-image").attr("src", slices[index].flair);
+            $("#overlay-image").attr("src", slices[index].overlay);
+            $("#mask-image").attr("src", slices[index].mask);
+        }
+    </script>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

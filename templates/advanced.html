@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced 3D MRI Viewer</title>
+
+    <style>
+        body {
+            background-color: #121212;
+            color: #eaeaea;
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            width: 100vw;
+        }
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            background-color: #1e1e1e;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            z-index: 10;
+        }
+        .title {
+            font-size: 1.5rem;
+            font-weight: 500;
+            color: #007bff;
+        }
+        .upload-box {
+            display: flex;
+            align-items: center;
+            background: #2a2a2a;
+            padding: 8px 15px;
+            border-radius: 8px;
+            border: 1px solid #333;
+            transition: all 0.3s ease;
+        }
+        .upload-box:hover {
+            border-color: #007bff;
+        }
+        .upload-box input[type="file"] {
+            color: white;
+            background: transparent;
+            border: none;
+            outline: none;
+        }
+        .upload-box button {
+            margin-left: 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 8px 15px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .upload-box button:hover {
+            background-color: #0069d9;
+        }
+        .main-content {
+            display: flex;
+            flex-grow: 1;
+            height: calc(100vh - 75px);
+        }
+        #three-d-container {
+            flex: 3;
+            background: #1a1a1a;
+            position: relative;
+            border-radius: 0;
+            overflow: hidden;
+        }
+        .slices-panel {
+            flex: 1;
+            background: #1e1e1e;
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
+            box-shadow: -2px 0 10px rgba(0, 0, 0, 0.2);
+            overflow-y: auto;
+        }
+        .slice-box {
+            background: #2a2a2a;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            padding: 12px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+        .slice-box:last-child {
+            margin-bottom: 0;
+        }
+        .slice-title {
+            font-size: 1rem;
+            margin: 0 0 10px 0;
+            color: #007bff;
+            font-weight: 600;
+            text-align: center;
+        }
+        .slice-image-container {
+            position: relative;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        .slice-box img {
+            width: 100%;
+            height: auto;
+            border-radius: 5px;
+            background-color: #000;
+            display: block;
+            margin: 0;
+            transition: transform 0.3s ease;
+        }
+        .slider-container {
+            display: flex;
+            align-items: center;
+            margin-top: 10px;
+        }
+        .slider-value {
+            width: 30px;
+            text-align: center;
+            margin-left: 10px;
+        }
+        .slider {
+            width: 100%;
+            height: 6px;
+            -webkit-appearance: none;
+            background: #333;
+            border-radius: 3px;
+            outline: none;
+        }
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #007bff;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+        .slider::-webkit-slider-thumb:hover {
+            background: #0069d9;
+        }
+        .status-bar {
+            background: #1e1e1e;
+            padding: 8px 20px;
+            font-size: 0.85rem;
+            color: #999;
+            border-top: 1px solid #333;
+        }
+        .control-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+        }
+        .btn {
+            background-color: #2d2d2d;
+            color: #eaeaea;
+            border: 1px solid #444;
+            border-radius: 4px;
+            padding: 5px 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.85rem;
+        }
+        .btn:hover {
+            background-color: #3a3a3a;
+            border-color: #007bff;
+        }
+        .btn-primary {
+            background-color: #007bff;
+            border-color: #007bff;
+        }
+        .btn-primary:hover {
+            background-color: #0069d9;
+        }
+        .rotate-controls {
+            display: flex;
+            justify-content: center;
+            margin-top: 8px;
+            gap: 5px;
+        }
+        .rotate-btn {
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            background-color: #2d2d2d;
+            color: #eaeaea;
+            border: 1px solid #444;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .rotate-btn:hover {
+            background-color: #3a3a3a;
+            border-color: #007bff;
+        }
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+            #three-d-container {
+                flex: 2;
+                min-height: 50vh;
+            }
+            .slices-panel {
+                flex-direction: row;
+                overflow-x: auto;
+                padding: 10px;
+            }
+            .slice-box {
+                margin-right: 10px;
+                margin-bottom: 0;
+                min-width: 200px;
+            }
+        }
+    </style>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://get.goxtk.com/xtk_edge.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Top Bar -->
+        <div class="top-bar">
+            <div class="title">Advanced 3D MRI Viewer</div>
+            <div class="upload-box">
+                <form id="nii-upload-form" enctype="multipart/form-data">
+                    <input type="file" id="nii-file" name="file" accept=".nii">
+                    <button type="submit">Upload & Process</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <div class="main-content">
+            <!-- 3D Viewer (Left, Larger) -->
+            <div id="three-d-container"></div>
+            
+            <!-- Slices Panel (Right) -->
+            <div class="slices-panel">
+                <div class="slice-box">
+                    <h3 class="slice-title">Axial View</h3>
+                    <div class="slice-image-container">
+                        <img id="axial-img" src="" alt="Axial Slice">
+                    </div>
+                    <div class="rotate-controls">
+                        <button class="rotate-btn rotate-left" data-target="axial-img">↺</button>
+                        <button class="rotate-btn rotate-right" data-target="axial-img">↻</button>
+                    </div>
+                    <div class="slider-container">
+                        <input type="range" class="slider" id="axial-slider" min="5" max="145" value="5">
+                        <span id="axial-value" class="slider-value">5</span>
+                    </div>
+                    <div class="control-buttons">
+                        <button class="btn btn-primary animate-btn" data-target="axial-slider">Animate</button>
+                        <button class="btn stop-btn" data-target="axial-slider">Stop</button>
+                    </div>
+                </div>
+                
+                <div class="slice-box">
+                    <h3 class="slice-title">Coronal View</h3>
+                    <div class="slice-image-container">
+                        <img id="coronal-img" src="" alt="Coronal Slice">
+                    </div>
+                    <div class="rotate-controls">
+                        <button class="rotate-btn rotate-left" data-target="coronal-img">↺</button>
+                        <button class="rotate-btn rotate-right" data-target="coronal-img">↻</button>
+                    </div>
+                    <div class="slider-container">
+                        <input type="range" class="slider" id="coronal-slider" min="5" max="145" value="5">
+                        <span id="coronal-value" class="slider-value">5</span>
+                    </div>
+                    <div class="control-buttons">
+                        <button class="btn btn-primary animate-btn" data-target="coronal-slider">Animate</button>
+                        <button class="btn stop-btn" data-target="coronal-slider">Stop</button>
+                    </div>
+                </div>
+                
+                <div class="slice-box">
+                    <h3 class="slice-title">Sagittal View</h3>
+                    <div class="slice-image-container">
+                        <img id="sagittal-img" src="" alt="Sagittal Slice">
+                    </div>
+                    <div class="rotate-controls">
+                        <button class="rotate-btn rotate-left" data-target="sagittal-img">↺</button>
+                        <button class="rotate-btn rotate-right" data-target="sagittal-img">↻</button>
+                    </div>
+                    <div class="slider-container">
+                        <input type="range" class="slider" id="sagittal-slider" min="5" max="145" value="5">
+                        <span id="sagittal-value" class="slider-value">5</span>
+                    </div>
+                    <div class="control-buttons">
+                        <button class="btn btn-primary animate-btn" data-target="sagittal-slider">Animate</button>
+                        <button class="btn stop-btn" data-target="sagittal-slider">Stop</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Status Bar -->
+        <div class="status-bar">
+            Ready for NII file upload
+        </div>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            // Store animation intervals
+            const animations = {
+                'axial-slider': null,
+                'coronal-slider': null,
+                'sagittal-slider': null
+            };
+            
+            // Store rotation degrees for each image
+            const rotationDegrees = {
+                'axial-img': 0,
+                'coronal-img': 0,
+                'sagittal-img': 0
+            };
+
+            // Update slider value displays
+            $("#axial-slider").on("input", function() {
+                $("#axial-value").text($(this).val());
+                updateSlice("axial", $(this).val());
+            });
+
+            $("#coronal-slider").on("input", function() {
+                $("#coronal-value").text($(this).val());
+                updateSlice("coronal", $(this).val());
+            });
+
+            $("#sagittal-slider").on("input", function() {
+                $("#sagittal-value").text($(this).val());
+                updateSlice("sagittal", $(this).val());
+            });
+            
+            // Rotation controls
+            $(".rotate-left").click(function() {
+                const targetId = $(this).data("target");
+                rotationDegrees[targetId] = (rotationDegrees[targetId] - 90) % 360;
+                $("#" + targetId).css("transform", `rotate(${rotationDegrees[targetId]}deg)`);
+            });
+            
+            $(".rotate-right").click(function() {
+                const targetId = $(this).data("target");
+                rotationDegrees[targetId] = (rotationDegrees[targetId] + 90) % 360;
+                $("#" + targetId).css("transform", `rotate(${rotationDegrees[targetId]}deg)`);
+            });
+            
+            // Animation controls
+            $(".animate-btn").click(function() {
+                const sliderId = $(this).data("target");
+                const slider = $("#" + sliderId);
+                const sliderMin = parseInt(slider.attr("min"));
+                const sliderMax = parseInt(slider.attr("max"));
+                
+                // Stop any existing animation
+                if (animations[sliderId]) {
+                    clearInterval(animations[sliderId]);
+                }
+                
+                let direction = 1; // 1 for increasing, -1 for decreasing
+                let currentValue = parseInt(slider.val());
+                
+                animations[sliderId] = setInterval(function() {
+                    // Change direction if we hit min or max
+                    if (currentValue >= sliderMax) {
+                        direction = -1;
+                    } else if (currentValue <= sliderMin) {
+                        direction = 1;
+                    }
+                    
+                    currentValue += direction;
+                    slider.val(currentValue);
+                    slider.trigger("input"); // Trigger the input event to update the display
+                }, 150); // Adjust the speed of animation here
+                
+                $(".status-bar").text(`Animating ${sliderId.split('-')[0]} view`);
+            });
+            
+            $(".stop-btn").click(function() {
+                const sliderId = $(this).data("target");
+                if (animations[sliderId]) {
+                    clearInterval(animations[sliderId]);
+                    animations[sliderId] = null;
+                    $(".status-bar").text(`Animation stopped for ${sliderId.split('-')[0]} view`);
+                }
+            });
+
+            // Handle file upload
+            $("#nii-upload-form").submit(function(event) {
+                event.preventDefault();
+                $(".status-bar").text("Processing...");
+                
+                var formData = new FormData();
+                formData.append("file", $("#nii-file")[0].files[0]);
+
+                $.ajax({
+                    url: "/upload_nii",
+                    type: "POST",
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function(response) {
+                        $(".status-bar").text("NII file loaded successfully");
+                        load3DModel(response.file_path);
+                    },
+                    error: function(error) {
+                        $(".status-bar").text("Error: " + (error.responseJSON?.message || "Failed to process file"));
+                    }
+                });
+            });
+
+            function load3DModel(niiFilePath) {
+                let r = new X.renderer3D();
+                r.container = 'three-d-container';
+                r.init();
+                
+                let volume = new X.volume();
+                volume.file = niiFilePath;
+                
+                r.add(volume);
+                r.render();
+                
+                // Update initial slices
+                updateSlice("axial", $("#axial-slider").val());
+                updateSlice("coronal", $("#coronal-slider").val());
+                updateSlice("sagittal", $("#sagittal-slider").val());
+            }
+
+            function updateSlice(axis, index) {
+                $.ajax({
+                    url: `/get_slice/${axis}/${index}`,
+                    type: "GET",
+                    success: function(response) {
+                        if (response.slice_path) {
+                            $(`#${axis}-img`).attr("src", response.slice_path);
+                        }
+                    },
+                    error: function() {
+                        $(".status-bar").text(`Error fetching ${axis} slice at index ${index}`);
+                    }
+                });
+            }
+            
+            // Stop all animations when leaving the page
+            $(window).on("beforeunload", function() {
+                for (const sliderId in animations) {
+                    if (animations[sliderId]) {
+                        clearInterval(animations[sliderId]);
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>
