@@ -4,7 +4,9 @@ This project aims to detect and segment Brain Tumors from 3-Dimensional Brain MR
 The BraTS2020 dataset was used.
 
 A U-net model was used with the "nibabel" library in python.
-Further improvements are underway. Feel free to contribute and collaborate
+Further improvements are underway. Feel free to contribute and collaborate <br>
+
+*note to create a "/static" folder in the root folder
 
 Segmentation environment
 ![ui1](https://github.com/user-attachments/assets/d4cbd293-897e-4962-adbf-6bc102f6dba6)
